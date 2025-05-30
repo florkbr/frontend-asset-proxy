@@ -40,7 +40,6 @@ The proxy is configured primarily through the `Caddyfile`. Runtime behavior is c
 * **`Makefile`**: Provides convenient commands for common development tasks.
 * **`test_caddy.sh`**: A shell script to run basic `curl` tests against a running instance of the proxy.
 * **`README.md`**: This file.
-* **`.gitignore`**: Specifies intentionally untracked files that Git should ignore.
 
 ## Local Setup & Testing (Using Makefile - Recommended)
 
