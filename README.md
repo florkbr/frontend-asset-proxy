@@ -8,7 +8,7 @@ This component is part of an initiative to implement an object storage-based pus
 
 Key functionalities include:
 * Reverse proxying requests to S3/Minio.
-* Supporting Single Page Application (SPA) routing by ensuring that requests for non-existent asset paths correctly serve the main application entrypoint (e.g., `index.html`). (Note: The Caddyfile in this repository is configured for this; ensure your chosen Caddyfile version supports SPA if needed).
+* Supporting Single Page Application (SPA) routing by ensuring that requests for non-existent asset paths correctly serve the main application entrypoint (e.g., `index.html`).
 * Providing a flexible point for potential future processing of asset requests.
 * Designed to be deployed as a containerized application, managed by a Frontend Operator (FEO) within a Kubernetes environment (e.g., in the FEO namespace as a new managed resource).
 * Built and versioned using Konflux.
