@@ -6,7 +6,7 @@
 }
 
 # Define the HTTP server
-http://:{$SERVER_PORT:-8080} {
+:{$SERVER_PORT:8080} {
     log {
         output stderr
         level  DEBUG
@@ -24,8 +24,6 @@ http://:{$SERVER_PORT:-8080} {
         # Prepend BUCKET_PATH_PREFIX/data to the incoming request URI path
         rewrite * {$BUCKET_PATH_PREFIX}/data{http.request.uri.path}
         
-        log { level DEBUG; msg "Main handle: Original URI '{http.request.orig_uri.path}', Rewritten to '{http.request.uri.path}' for proxying to {$MINIO_UPSTREAM_URL}."}
-        
         reverse_proxy {$MINIO_UPSTREAM_URL} {
             header_up Host {http.reverse_proxy.upstream.hostport}
         }
@@ -35,17 +33,17 @@ http://:{$SERVER_PORT:-8080} {
     handle_errors {
         @spa_fallback expression {http.error.status_code} == 403 || {http.error.status_code} == 404
         handle @spa_fallback {
-            log { level DEBUG; msg "handle_errors SPA Fallback: Error {http.error.status_code} for original request '{http.request.orig_uri.path}'. Rewriting to SPA entry point '{$BUCKET_PATH_PREFIX}/data{$SPA_ENTRYPOINT_PATH}' and proxying to {$MINIO_UPSTREAM_URL}."}
-            
             # Rewrite to the SPA entry point, assuming it's also under the 'data' prefix in S3.
             # e.g., if SPA_ENTRYPOINT_PATH is /index.html, this becomes /frontend-assets/data/index.html
-            rewrite * {$BUCKET_PATH_PREFIX}/data{$SPA_ENTRYPOINT_PATH:-/index.html}
+            rewrite * {$BUCKET_PATH_PREFIX}/data{$SPA_ENTRYPOINT_PATH:/index.html}
             
             reverse_proxy {$MINIO_UPSTREAM_URL} {
                 header_up Host {http.reverse_proxy.upstream.hostport}
             }
         }
         # For other errors not handled by SPA fallback
-        respond "{http.error.status_code} {http.error.status_text}" { close }
+        respond "{http.error.status_code} {http.error.status_text}" {
+            close
+        }
     }
 }
