@@ -117,3 +117,5 @@ If you prefer not to use `make` or need to perform steps individually, refer to 
 This component is designed to be deployed by the Frontend Operator (FEO). The container image will be built by Konflux and made available in the organization's container registry.
 
 Refer to the FEO documentation for specific deployment procedures and how it manages this resource.
+
+Konflux
