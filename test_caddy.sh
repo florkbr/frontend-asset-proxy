@@ -12,8 +12,8 @@ APPS_TEST_PATH="/apps/my-app/index.html"
 APPS_EXPECTED_CONTENT_TYPE="text/html"
 APPS_EXPECTED_CONTENT_SNIPPET="<html>" # Generic HTML snippet to verify it's an HTML file
 
-# Configuration for testing /manifest route (serves directly from bucket path prefix)
-MANIFEST_TEST_PATH="/manifest/app-manifest.json"
+# Configuration for testing /manifests route (serves directly from bucket path prefix)
+MANIFEST_TEST_PATH="/manifests/app-manifest.json"
 MANIFEST_EXPECTED_CONTENT_TYPE="application/json"
 MANIFEST_EXPECTED_CONTENT_SNIPPET="{" # Generic JSON snippet to verify it's a JSON file
 
