@@ -28,7 +28,7 @@ The proxy is configured primarily through the `Caddyfile`. Runtime behavior is c
 | ----------------------- | ------------------------------------------------------------------------------ | -------------------------------------------- | ------------------- | -------- |
 | `SERVER_PORT`           | The internal port the Caddy server will listen on within the container.        | `8080`                                       | `8080`              | No       |
 | `MINIO_UPSTREAM_URL`    | The base URL of the Minio/S3 service (scheme, host, port only).                | `http://minio:9000` (Docker Compose service name) | N/A                 | Yes      |
-| `BUCKET_PATH_PREFIX`    | The bucket name/path prefix to be prepended to requests (must start with `/`). | `/frontend-assets`                           | N/A                 | Yes      |
+| `BUCKET_PATH_PREFIX`    | The bucket name prefix to be prepended to requests. | `frontends`                           | N/A                 | Yes      |
 | `SPA_ENTRYPOINT_PATH`   | Path to the SPA's entry HTML file within the bucket (e.g., `/index.html`).     | `/index.html`                                | `/index.html`       | No       |
 | `LOG_LEVEL`             | The log level for Caddy (DEBUG, INFO, WARN, ERROR).                      | `DEBUG`                                      | `DEBUG` (in Caddyfile) | No       |
 
