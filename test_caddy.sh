@@ -1,22 +1,25 @@
 #!/bin/bash
 
-# Caddy Test Script (for Specific File & Simplified Proxy)
+# Caddy Test Script (for /apps and /manifest routes)
 
 # --- Configuration ---
 CADDY_BASE_URL="http://localhost:8080" # Adjust if your Caddy is on a different port
-
+MINIO_UPSTREAM_URL="http://localhost:9000"
 HEALTH_PATH="/healthz"
 
-# Specific file to test, as requested by the user
-SPECIFIC_FILE_PATH="/api/chrome-service/v1/static/stable/prod/navigation/edge-navigation.json"
-SPECIFIC_FILE_EXPECTED_CONTENT_TYPE="application/json"
-# Optional: Add a snippet from your JSON if you want to verify content, e.g.:
-# SPECIFIC_FILE_EXPECTED_CONTENT_SNIPPET='"someKey": "someValue"' 
+# Configuration for testing /apps route (serves from /data/ prefix in S3)
+APPS_TEST_PATH="/apps/my-app/index.html"
+APPS_EXPECTED_CONTENT_TYPE="text/html"
+APPS_EXPECTED_CONTENT_SNIPPET="<html>" # Generic HTML snippet to verify it's an HTML file
 
-# Configuration for testing index.html directly
-INDEX_HTML_PATH="/index.html" # Changed from "/" to "/index.html"
-INDEX_HTML_EXPECTED_CONTENT_TYPE="text/html"
-INDEX_HTML_EXPECTED_CONTENT_SNIPPET="Caddy & Minio Test Page" # A snippet from your index.html <title>
+# Configuration for testing /manifest route (serves directly from bucket path prefix)
+MANIFEST_TEST_PATH="/manifest/app-manifest.json"
+MANIFEST_EXPECTED_CONTENT_TYPE="application/json"
+MANIFEST_EXPECTED_CONTENT_SNIPPET="{" # Generic JSON snippet to verify it's a JSON file
+
+# Alternative /apps test with a different file type
+APPS_JS_TEST_PATH="/apps/my-app/main.js"
+APPS_JS_EXPECTED_CONTENT_TYPE="application/javascript"
 
 # --- Helper Functions ---
 # $1: Test Name
@@ -89,7 +92,7 @@ run_test() {
 }
 
 # --- Main Test Execution ---
-echo "Starting Caddy Server Tests..."
+echo "Starting Caddy Server Tests for /apps and /manifest routes..."
 echo "   Targeting: $CADDY_BASE_URL"
 echo ""
 
@@ -99,16 +102,21 @@ all_tests_passed=true
 run_test "Health Check" "${CADDY_BASE_URL}${HEALTH_PATH}" 200 "text/plain" "OK"
 if [ $? -ne 0 ]; then all_tests_passed=false; fi
 
-# Test 2: Specific File Request
-# This test assumes the file exists in Minio at the correct path:
-# BUCKET_PATH_PREFIX + SPECIFIC_FILE_PATH
-# e.g., /frontend-assets/api/chrome-service/v1/static/stable/prod/navigation/edge-navigation.json
-run_test "Specific File Request" "${CADDY_BASE_URL}${SPECIFIC_FILE_PATH}" 200 "$SPECIFIC_FILE_EXPECTED_CONTENT_TYPE" # Add SPECIFIC_FILE_EXPECTED_CONTENT_SNIPPET if desired
+# Test 2: /apps route - HTML file
+# This test checks the /apps route which serves files from BUCKET_PATH_PREFIX/data/
+# e.g., /apps/my-app/index.html -> BUCKET_PATH_PREFIX/data/apps/my-app/index.html
+run_test "Apps Route - HTML File" "${CADDY_BASE_URL}${APPS_TEST_PATH}" 200 "$APPS_EXPECTED_CONTENT_TYPE" "$APPS_EXPECTED_CONTENT_SNIPPET"
 if [ $? -ne 0 ]; then all_tests_passed=false; fi
 
-# Test 3: Index.html (Direct Request)
-# This test assumes index.html exists in Minio at the root of the bucket path prefix
-run_test "Index.html (Direct Request)" "${CADDY_BASE_URL}${INDEX_HTML_PATH}" 200 "$INDEX_HTML_EXPECTED_CONTENT_TYPE" "$INDEX_HTML_EXPECTED_CONTENT_SNIPPET"
+# Test 3: /apps route - JavaScript file
+# This test checks another file type through the /apps route
+run_test "Apps Route - JavaScript File" "${CADDY_BASE_URL}${APPS_JS_TEST_PATH}" 200 "$APPS_JS_EXPECTED_CONTENT_TYPE"
+if [ $? -ne 0 ]; then all_tests_passed=false; fi
+
+# Test 4: /manifest route
+# This test checks the /manifest route which serves files directly from BUCKET_PATH_PREFIX
+# e.g., /manifest/app-manifest.json -> BUCKET_PATH_PREFIX/manifest/app-manifest.json
+run_test "Manifest Route - JSON File" "${CADDY_BASE_URL}${MANIFEST_TEST_PATH}" 200 "$MANIFEST_EXPECTED_CONTENT_TYPE" "$MANIFEST_EXPECTED_CONTENT_SNIPPET"
 if [ $? -ne 0 ]; then all_tests_passed=false; fi
 
 
