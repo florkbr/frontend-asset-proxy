@@ -17,6 +17,15 @@
         respond "OK" 200
     }
 
+    # serve out /manifest/* with bucket path BUCKET_PATH_PREFIX
+    handle /manifest/* {     
+        rewrite * {$BUCKET_PATH_PREFIX}{http.request.uri.path}
+        
+        reverse_proxy {$MINIO_UPSTREAM_URL} {
+            header_up Host {http.reverse_proxy.upstream.hostport}
+        }
+    }
+
     # Main request handling.
     # If incoming request is /app_name/filepath.ext
     # it will be rewritten to BUCKET_PATH_PREFIX/data/app_name/filepath.ext
