@@ -2,11 +2,14 @@
 
 # Global options block.
 {
+	{$CADDY_TLS_MODE}
+	auto_https disable_redirects
 	debug
 }
 
 # Define the HTTP server
 :{$SERVER_PORT:8080} {
+	{$CADDY_TLS_CERT}
 	log {
 		output stderr
 		level DEBUG
