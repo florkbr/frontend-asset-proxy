@@ -1,3 +1,16 @@
+## Environment
+
+Copy `env.example` to `.env` and fill in values as needed to enable the aws-sigv4 proxy for private buckets:
+
+```
+cp env.example .env
+```
+
+Key variables:
+- `PUSHCACHE_AWS_ACCESS_KEY_ID`, `PUSHCACHE_AWS_SECRET_ACCESS_KEY`, `PUSHCACHE_AWS_REGION`
+- `AWS_SIGV4_UPSTREAM_HOST`, `AWS_SIGV4_UPSTREAM_PORT` (use `s3.amazonaws.com` and `443` for AWS S3)
+
+NOTE: if on a mac, you need a version of curl that supports TLS 1.3 to run curl commands against caddy. Try `brew install curl-openssl`
 # Caddy Frontend Asset Proxy
 
 ## Purpose

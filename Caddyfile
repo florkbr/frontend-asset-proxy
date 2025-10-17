@@ -24,7 +24,7 @@
 	handle /manifests/* {
 		rewrite * /{$BUCKET_PATH_PREFIX}{http.request.uri.path}
 
-		reverse_proxy {$MINIO_UPSTREAM_URL} {
+		reverse_proxy {$SIGV4_PROXY_URL:http://aws-sigv4-proxy:8081} {
 			header_up Host {http.reverse_proxy.upstream.hostport}
 		}
 	}
@@ -37,7 +37,7 @@
 		# Strip /apps prefix and prepend BUCKET_PATH_PREFIX/data
 		rewrite * /{$BUCKET_PATH_PREFIX}/data{http.request.uri.path}
 
-		reverse_proxy {$MINIO_UPSTREAM_URL} {
+		reverse_proxy {$SIGV4_PROXY_URL:http://aws-sigv4-proxy:8081} {
 			header_up Host {http.reverse_proxy.upstream.hostport}
 		}
 	}
@@ -47,7 +47,7 @@
 		# Prepend BUCKET_PATH_PREFIX/data to the incoming request URI path
 		rewrite * /{$BUCKET_PATH_PREFIX}/data{http.request.uri.path}
 
-		reverse_proxy {$MINIO_UPSTREAM_URL} {
+		reverse_proxy {$SIGV4_PROXY_URL:http://aws-sigv4-proxy:8081} {
 			header_up Host {http.reverse_proxy.upstream.hostport}
 		}
 	}
@@ -60,7 +60,7 @@
 			# e.g., if SPA_ENTRYPOINT_PATH is /index.html, this becomes /frontend-assets/data/index.html
 			rewrite * /{$BUCKET_PATH_PREFIX}/data{$SPA_ENTRYPOINT_PATH:/index.html}
 
-			reverse_proxy {$MINIO_UPSTREAM_URL} {
+			reverse_proxy {$SIGV4_PROXY_URL:http://aws-sigv4-proxy:8081} {
 				header_up Host {http.reverse_proxy.upstream.hostport}
 			}
 		}

@@ -7,17 +7,75 @@ services:
       - "9001:9001" # Minio Console port
     volumes:
       - minio_data:/data # Docker named volume for persistence
+      - minio_certs:/root/.minio/certs # TLS certs for HTTPS
     environment:
       MINIO_ROOT_USER: minioadmin
       MINIO_ROOT_PASSWORD: minioadmin
-    command: server /data --console-address ":9001"
+      MINIO_CERTS_DIR: /root/.minio/certs
+    entrypoint:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        echo "Waiting for TLS certs in /root/.minio/certs ..."
+        while [ ! -f /root/.minio/certs/public.crt ] || [ ! -f /root/.minio/certs/private.key ]; do
+          sleep 1
+        done
+        exec minio server /data --console-address ":9001"
     networks:
       - caddy_test_net
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      test: ["CMD", "curl", "-kf", "https://localhost:9000/minio/health/live"]
       interval: 30s
       timeout: 20s
       retries: 3
+    depends_on:
+      init-minio-certs:
+        condition: service_completed_successfully
+
+  initialize-minio:
+    image: quay.io/minio/mc
+    depends_on:
+      minio:
+        condition: service_healthy
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    entrypoint: >
+      /bin/sh -c '
+      echo "Initializing MinIO..."
+      /usr/bin/mc --insecure config host add myminio https://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}";
+      /usr/bin/mc --insecure alias set myminio https://minio:9000 "$${MINIO_ROOT_USER}" "$${MINIO_ROOT_PASSWORD}";
+      /usr/bin/mc --insecure mb -p myminio/"$${BUCKET_PATH_PREFIX}";
+      exit 0;
+      '
+    env_file: .env
+
+  init-minio-certs:
+    image: alpine:3.20
+    container_name: init-minio-certs
+    command:
+      - /bin/sh
+      - -c
+      - |
+        set -e
+        apk add --no-cache openssl >/dev/null
+        mkdir -p /certs
+        if [ ! -f /certs/public.crt ] || [ ! -f /certs/private.key ]; then
+          openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
+            -keyout /certs/private.key -out /certs/public.crt \
+            -subj "/CN=localhost" \
+            -addext "subjectAltName=DNS:localhost,DNS:minio,IP:127.0.0.1"
+        fi
+        chmod 600 /certs/private.key || true
+        chmod 644 /certs/public.crt || true
+        ls -l /certs
+        echo "MinIO TLS certs ready."
+    volumes:
+      - minio_certs:/certs
+    networks:
+      - caddy_test_net
+    restart: "no"
 
   caddy:
     build:
@@ -29,10 +87,14 @@ services:
     depends_on:
       minio:
         condition: service_healthy # Wait for Minio to be healthy
+      aws-sigv4-proxy:
+        condition: service_started
     environment:
       SERVER_PORT: "8080"
       # MINIO_UPSTREAM_URL uses the service name 'minio' from this docker-compose file
       MINIO_UPSTREAM_URL: "http://minio:9000"
+      # Point Caddy to the signing proxy sidecar
+      SIGV4_PROXY_URL: "http://aws-sigv4-proxy:8081"
       BUCKET_PATH_PREFIX: "/frontend-assets"
       # SPA_ENTRYPOINT_PATH is for the more complete Caddyfile.
       SPA_ENTRYPOINT_PATH: "/index.html"
@@ -40,8 +102,35 @@ services:
     networks:
       - caddy_test_net
 
+  aws-sigv4-proxy:
+    image: public.ecr.aws/aws-observability/aws-sigv4-proxy:1.2
+    container_name: aws-sigv4-proxy
+    ports:
+      - "8081:8080"
+    environment:
+      # Map project env vars into AWS SDK envs
+      AWS_ACCESS_KEY_ID: ${PUSHCACHE_AWS_ACCESS_KEY_ID}
+      AWS_SECRET_ACCESS_KEY: ${PUSHCACHE_AWS_SECRET_ACCESS_KEY}
+      AWS_REGION: ${PUSHCACHE_AWS_REGION:-us-east-1}
+      AWS_DEFAULT_REGION: ${PUSHCACHE_AWS_REGION:-us-east-1}
+    command:
+      - --name=s3
+      - --region=${PUSHCACHE_AWS_REGION:-us-east-1}
+      # Upstream defaults to local MinIO; override for AWS with envs below
+      - --host=${AWS_SIGV4_UPSTREAM_HOST:-minio:9000}
+      - --port=${AWS_SIGV4_LISTEN_PORT:-aws-sigv4-proxy:8080}
+      - --log-signing-process
+      - --verbose
+      - --no-verify-ssl
+    networks:
+      - caddy_test_net
+    depends_on:
+      minio:
+        condition: service_healthy
+
 volumes:
   minio_data: # Defines the named volume for Minio persistence
+  minio_certs:
 
 networks:
   caddy_test_net:
